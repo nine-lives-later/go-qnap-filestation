@@ -102,6 +102,28 @@ func TestRoundtrip(t *testing.T) {
 		}
 	})
 
+	t.Run("EnsureTestFolder-Level4", func(t *testing.T) {
+		created, err := s.EnsureFolder(testFolderPath + "/test/ensure/test4")
+		if err != nil {
+			t.Fatalf("Failed create test folder: %v", err)
+		}
+
+		if created <= 0 {
+			t.Fatalf("Expected the folder to not exist")
+		}
+	})
+
+	t.Run("TryEnsureTestFolder-Level4", func(t *testing.T) {
+		created, err := s.EnsureFolder(testFolderPath + "/test/ensure/test4")
+		if err != nil {
+			t.Fatalf("Failed create test folder: %v", err)
+		}
+
+		if created != 0 {
+			t.Fatalf("Expected the folder to already exist")
+		}
+	})
+
 	// list folders
 	t.Run("GetFileList-Level2", func(t *testing.T) {
 		folders, err := s.GetFileList(testFolderPath)

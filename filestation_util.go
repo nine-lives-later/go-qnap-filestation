@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 type FolderListEntry struct {
@@ -165,6 +166,44 @@ func (s *FileStationSession) CreateFolder(path string) (bool, error) {
 	}
 
 	return false, fmt.Errorf("Unknown status code: %v", result.Status)
+}
+
+// EnsureFolder creates a new folder and its parent directories.
+func (s *FileStationSession) EnsureFolder(path string) (int, error) {
+	if !strings.HasPrefix(path, "/") {
+		return 0, fmt.Errorf("Path does not begin with a slash: %v", path)
+	}
+
+	// already exists?
+	exists, err := s.GetFileStat(path)
+	if err != nil {
+		return 0, fmt.Errorf("Failed to check for folder '%v': %v", path, err)
+	}
+	if exists != nil {
+		return 0, nil
+	}
+
+	// create sub-folders
+	parts := strings.Split(filepath.ToSlash(path), "/")[1:]
+	if len(parts) < 2 {
+		return 0, fmt.Errorf("Path is not a subfolder of a share: %v", path)
+	}
+
+	createdOverall := 0
+	for i := 1; i < len(parts); i++ {
+		subPath := "/" + filepath.ToSlash(filepath.Join(parts[0:i+1]...))
+
+		created, err := s.CreateFolder(subPath)
+		if err != nil {
+			return createdOverall, fmt.Errorf("Failed to create sub-folder '%v': %v", subPath, err)
+		}
+
+		if created {
+			createdOverall++
+		}
+	}
+
+	return createdOverall, nil
 }
 
 // DeleteFile deletes a file or folder.
