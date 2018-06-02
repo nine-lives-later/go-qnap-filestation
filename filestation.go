@@ -54,7 +54,18 @@ type QueryParameters map[string]string
 
 // Error returns the error message.
 func (r RequestError) Error() string {
-	return fmt.Sprintf("Status Code: %v", r.Status)
+	msg := "unknown"
+
+	switch r.Status {
+	case 8: // disabled
+		msg = "API is disabled"
+	case 4: // permission denied
+		msg = "Permission denied"
+	case 3: // session expired
+		msg = "Session expired"
+	}
+
+	return fmt.Sprintf("Status Code: %v (%v)", r.Status, msg)
 }
 
 // Connect sets up our connection to the Zevenet system.
@@ -116,6 +127,12 @@ func (s *FileStationSession) apiCall(options *APIRequest) ([]byte, error) {
 	url.WriteString(options.URL)
 	url.WriteString("?")
 
+	if s.SessionID != "" {
+		url.WriteString("sid=")
+		url.WriteString(netUrl.QueryEscape(s.SessionID))
+		url.WriteString("&")
+	}
+
 	for k, v := range options.QueryParams {
 		url.WriteString(k)
 		url.WriteString("=")
@@ -140,14 +157,6 @@ func (s *FileStationSession) apiCall(options *APIRequest) ([]byte, error) {
 	defer res.Body.Close()
 
 	data, _ := ioutil.ReadAll(res.Body)
-
-	if res.StatusCode >= 400 {
-		if res.Header["Content-Type"][0] == "application/json" {
-			return data, s.checkError(data)
-		}
-
-		return data, fmt.Errorf("HTTP %d :: %s", res.StatusCode, string(data[:]))
-	}
 
 	fmt.Println("RES --", res.StatusCode, " -- ", string(data))
 
@@ -217,7 +226,7 @@ func (s *FileStationSession) getForEntity(e interface{}, scriptPath string, para
 
 	err = json.Unmarshal(resp, e)
 	if err != nil {
-		return err
+		return s.checkError(resp)
 	}
 
 	return nil
@@ -276,10 +285,10 @@ func marshal(to, from interface{}) error {
 			toField.Set(fromField)
 		} else if toField.Kind() == reflect.Bool && fromField.Kind() == reflect.String {
 			switch fromField.Interface() {
-			case "yes", "enabled", "true":
+			case "yes", "enabled", "enable", "true":
 				toField.SetBool(true)
 				break
-			case "no", "disabled", "false", "":
+			case "no", "disabled", "disable", "false", "":
 				toField.SetBool(false)
 				break
 			default:
@@ -293,6 +302,9 @@ func marshal(to, from interface{}) error {
 				break
 			case "enabled":
 				toField.SetString(toBoolString(fromField.Interface().(bool), "enabled", "disabled"))
+				break
+			case "enable":
+				toField.SetString(toBoolString(fromField.Interface().(bool), "enable", "disable"))
 				break
 			case "true":
 				toField.SetString(toBoolString(fromField.Interface().(bool), "true", "false"))

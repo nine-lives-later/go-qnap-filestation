@@ -31,6 +31,8 @@ func (s *FileStationSession) Login(username, password string) error {
 	case 1: // success
 		s.SessionID = result.SessionID
 		return nil
+	case 2: // exists
+		return fmt.Errorf("Already exists")
 	case 8: // disabled
 		return fmt.Errorf("API is disabled")
 	}
@@ -53,9 +55,7 @@ func (s *FileStationSession) Logout() error {
 
 	var result *logoutResponse
 
-	err := s.getForEntity(&result, "cgi-bin/filemanager/wfm2Logout.cgi", QueryParameters{
-		"sid": s.SessionID,
-	})
+	err := s.getForEntity(&result, "cgi-bin/filemanager/wfm2Logout.cgi", QueryParameters{})
 	if err != nil {
 		return err
 	}

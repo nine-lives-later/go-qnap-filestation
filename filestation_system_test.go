@@ -16,7 +16,7 @@ func createTestSessionEx(t *testing.T, username, password string) *FileStationSe
 		username = os.Getenv("QNAP_USER")
 
 		if username == "" {
-			username = "admin"
+			username = "unitest-user"
 		}
 	}
 
@@ -24,7 +24,7 @@ func createTestSessionEx(t *testing.T, username, password string) *FileStationSe
 		password = os.Getenv("QNAP_PWD")
 
 		if password == "" {
-			password = "admin"
+			password = "t3st!!!"
 		}
 	}
 
