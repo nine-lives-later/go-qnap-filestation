@@ -1,35 +1,3 @@
-# Gravitee Management API for Go
-
-This library provides access to the QNAP File Station API (http://www.qnap.com).
-
-**[Click here to open the GoDoc documentation.](https://godoc.org/github.com/konsorten/go-qnap-filestation)**
-
-## Usage
-
-To use the API, simply create a new session:
-
-```go
-import "github.com/konsorten/go-qnap-filestation"
-
-func main() {
-    session, _ := filestation.Connect("storage:8443", "admin", "admin", nil)
-
-    session.Logout()
-}
-```
-
-## Authors
-
-The library is sponsored by the [marvin + konsorten GmbH](http://www.konsorten.de).
-
-It is loosely based on the [go-bigip package](https://github.com/scottdware/go-bigip) by Scott Ware (and others).
-
-We thank all the authors who provided code to this library:
-
-* Felix Kollmann
-
-## License
-
 (The MIT License)
 
 Copyright (c) 2018 marvin + konsorten GmbH (open-source@konsorten.de)
