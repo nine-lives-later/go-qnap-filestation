@@ -143,7 +143,7 @@ func (s *FileStationSession) apiCall(options *APIRequest) ([]byte, error) {
 	body := bytes.NewReader([]byte(options.Body))
 	req, _ = http.NewRequest(strings.ToUpper(options.Method), url.String(), body)
 
-	fmt.Println("REQ -- ", options.Method, " ", url.String(), " -- ", options.Body)
+	//fmt.Println("REQ -- ", options.Method, " ", url.String(), " -- ", options.Body)
 
 	if len(options.ContentType) > 0 {
 		req.Header.Set("Content-Type", options.ContentType)
@@ -158,7 +158,7 @@ func (s *FileStationSession) apiCall(options *APIRequest) ([]byte, error) {
 
 	data, _ := ioutil.ReadAll(res.Body)
 
-	fmt.Println("RES --", res.StatusCode, " -- ", string(data))
+	//fmt.Println("RES --", res.StatusCode, " -- ", string(data))
 
 	return data, nil
 }
