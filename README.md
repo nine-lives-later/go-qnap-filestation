@@ -1,4 +1,4 @@
-# Gravitee Management API for Go
+# QNAP File Station API for Go
 
 This library provides access to the QNAP File Station API (http://www.qnap.com).
 
