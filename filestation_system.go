@@ -5,11 +5,6 @@ import (
 	"fmt"
 )
 
-type UserReference struct {
-	Id          string `json:"id"`
-	DisplayName string `json:"displayName"`
-}
-
 type loginResponse struct {
 	Status     int    `json:"status,omitempty"`
 	Version    string `json:"version,omitempty"`
