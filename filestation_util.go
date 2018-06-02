@@ -169,6 +169,15 @@ func (s *FileStationSession) CreateFolder(path string) (bool, error) {
 
 // DeleteFile deletes a file or folder.
 func (s *FileStationSession) DeleteFile(path string) (bool, error) {
+	return s.deleteFileInternal(path, 0)
+}
+
+// DeleteFileNoRecycleBin deletes a file or folder without moving them to the recycling bin.
+func (s *FileStationSession) DeleteFileNoRecycleBin(path string) (bool, error) {
+	return s.deleteFileInternal(path, 1)
+}
+
+func (s *FileStationSession) deleteFileInternal(path string, force int) (bool, error) {
 	var result *createFolderResponse
 
 	err := s.getForEntity(&result, "cgi-bin/filemanager/utilRequest.cgi", QueryParameters{
@@ -176,6 +185,7 @@ func (s *FileStationSession) DeleteFile(path string) (bool, error) {
 		"path":       filepath.ToSlash(filepath.Dir(path)),
 		"file_name":  filepath.Base(path),
 		"file_total": "1",
+		"force":      strconv.Itoa(force),
 	})
 	if err != nil {
 		return false, err
