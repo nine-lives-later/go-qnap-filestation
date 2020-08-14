@@ -2,14 +2,14 @@
 
 This library provides access to the QNAP File Station API (http://www.qnap.com).
 
-**[Click here to open the GoDoc documentation.](https://godoc.org/github.com/konsorten/go-qnap-filestation)**
+**[Click here to open the GoDoc documentation.](https://godoc.org/github.com/nine-lives-later/go-qnap-filestation)**
 
 ## Usage
 
 To use the API, simply create a new session:
 
 ```go
-import "github.com/konsorten/go-qnap-filestation"
+import "github.com/nine-lives-later/go-qnap-filestation"
 
 func main() {
     session, _ := filestation.Connect("storage:8443", "admin", "admin", nil)
