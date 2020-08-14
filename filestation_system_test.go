@@ -16,7 +16,7 @@ func createTestSessionEx(t *testing.T, username, password string) *FileStationSe
 		username = os.Getenv("QNAP_USER")
 
 		if username == "" {
-			username = "unitest-user"
+			username = "unittest-user"
 		}
 	}
 
@@ -24,7 +24,7 @@ func createTestSessionEx(t *testing.T, username, password string) *FileStationSe
 		password = os.Getenv("QNAP_PWD")
 
 		if password == "" {
-			password = "t3st!!!"
+			password = "t3st123!!!"
 		}
 	}
 
@@ -32,7 +32,7 @@ func createTestSessionEx(t *testing.T, username, password string) *FileStationSe
 	host := os.Getenv("QNAP_HOSTNAME")
 
 	if host == "" {
-		host = "storage1.konsorten.net:8443"
+		host = "192.168.211.110:443"
 	}
 
 	// create the session
@@ -85,7 +85,7 @@ func TestConnect_InvalidLogin(t *testing.T) {
 	host := os.Getenv("QNAP_HOSTNAME")
 
 	if host == "" {
-		host = "storage1.konsorten.net:8443"
+		host = "192.168.211.110:443"
 	}
 
 	_, err := Connect(host, "unkn0wnUs3r", "!nval1dP@ssw0rd", nil)
