@@ -93,7 +93,7 @@ func TestConnect_InvalidLogin(t *testing.T) {
 		t.Fatal("Error expected")
 	}
 
-	if !strings.Contains(err.Error(), "Password or Username is invalid") {
+	if !strings.Contains(err.Error(), "password or username is invalid") {
 		t.Fatalf("Wrong error message returned: %v", err)
 	}
 }

@@ -14,30 +14,41 @@ type loginResponse struct {
 }
 
 // Login perform the authentication against the QNAP storage.
+// Any existing session will be logged-out, first.
 func (s *FileStationSession) Login(username, password string) error {
-	var result *loginResponse
+	// make sure to close any existing sessions
+	s.Logout()
 
-	err := s.getForEntity(&result, "cgi-bin/filemanager/wfm2Login.cgi", QueryParameters{
-		"user": username,
-		"pwd":  encodePassword(password),
-	})
+	// perform login
+	var result loginResponse
+
+	res, err := s.conn.NewRequest().
+		ExpectContentType("application/json").
+		SetQueryParam("user", username).
+		SetQueryParam("pwd", encodePassword(password)).
+		SetResult(&result).
+		Get("cgi-bin/filemanager/wfm2Login.cgi")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to perform request: %v", err)
+	}
+	if res.StatusCode() != 200 {
+		return fmt.Errorf("failed to perform request: unexpected HTTP status code: %v", res.StatusCode())
 	}
 
 	switch result.Status {
 	case 0: // password wrong
-		return fmt.Errorf("Password or Username is invalid")
+		return fmt.Errorf("password or username is invalid")
 	case 1: // success
-		s.SessionID = result.SessionID
+		s.sessionID = result.SessionID
+		s.conn.SetQueryParam("sid", s.sessionID)
 		return nil
 	case 2: // exists
-		return fmt.Errorf("Already exists")
+		return fmt.Errorf("already exists")
 	case 8: // disabled
 		return fmt.Errorf("API is disabled")
 	}
 
-	return fmt.Errorf("Unknown status code: %v", result.Status)
+	return fmt.Errorf("unknown status code: %v", result.Status)
 }
 
 type logoutResponse struct {
@@ -49,26 +60,33 @@ type logoutResponse struct {
 // Logout invalidates the session.
 func (s *FileStationSession) Logout() error {
 	// no logged-in?
-	if s.SessionID == "" {
+	if s.sessionID == "" {
 		return nil
 	}
 
-	var result *logoutResponse
+	var result logoutResponse
 
-	err := s.getForEntity(&result, "cgi-bin/filemanager/wfm2Logout.cgi", QueryParameters{})
+	res, err := s.conn.NewRequest().
+		ExpectContentType("application/json").
+		SetResult(&result).
+		Get("cgi-bin/filemanager/wfm2Logout.cgi")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to perform request: %v", err)
+	}
+	if res.StatusCode() != 200 {
+		return fmt.Errorf("failed to perform request: unexpected HTTP status code: %v", res.StatusCode())
 	}
 
 	switch result.Status {
 	case 1: // success
-		s.SessionID = ""
+		s.sessionID = ""
+		s.conn.SetQueryParam("sid", "")
 		return nil
 	case 8: // disabled
 		return fmt.Errorf("API is disabled")
 	}
 
-	return fmt.Errorf("Unknown status code: %v", result.Status)
+	return fmt.Errorf("unknown status code: %v", result.Status)
 }
 
 func encodePassword(pwd string) string {

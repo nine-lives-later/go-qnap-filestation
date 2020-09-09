@@ -22,12 +22,17 @@ type FolderListEntry struct {
 func (s *FileStationSession) GetShareList() ([]FolderListEntry, error) {
 	var result []FolderListEntry
 
-	err := s.getForEntity(&result, "cgi-bin/filemanager/utilRequest.cgi", QueryParameters{
-		"func": "get_tree",
-		"node": "share_root",
-	})
+	res, err := s.conn.NewRequest().
+		ExpectContentType("application/json").
+		SetQueryParam("func", "get_tree").
+		SetQueryParam("node", "share_root").
+		SetResult(&result).
+		Get("cgi-bin/filemanager/utilRequest.cgi")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to perform request: %v", err)
+	}
+	if res.StatusCode() != 200 {
+		return nil, fmt.Errorf("failed to perform request: unexpected HTTP status code: %v", res.StatusCode())
 	}
 
 	return result, nil
@@ -68,18 +73,23 @@ func (s *FileStationSession) getFileListInternal(path string, limit int) ([]File
 	ret := make([]FileListEntry, 0)
 
 	for true {
-		var result *getFileListResponse
+		var result getFileListResponse
 
-		err := s.getForEntity(&result, "cgi-bin/filemanager/utilRequest.cgi", QueryParameters{
-			"func":      "get_list",
-			"path":      path,
-			"list_mode": "all",
-			"dir":       "ASC",
-			"limit":     strconv.Itoa(limit),
-			"start":     strconv.Itoa(len(ret)),
-		})
+		res, err := s.conn.NewRequest().
+			ExpectContentType("application/json").
+			SetQueryParam("func", "get_list").
+			SetQueryParam("path", path).
+			SetQueryParam("list_mode", "all").
+			SetQueryParam("dir", "ASC").
+			SetQueryParam("limit", strconv.Itoa(limit)).
+			SetQueryParam("start", strconv.Itoa(len(ret))).
+			SetResult(&result).
+			Get("cgi-bin/filemanager/utilRequest.cgi")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to perform request: %v", err)
+		}
+		if res.StatusCode() != 200 {
+			return nil, fmt.Errorf("failed to perform request: unexpected HTTP status code: %v", res.StatusCode())
 		}
 
 		// copy entries
@@ -103,16 +113,21 @@ func (s *FileStationSession) getFileListInternal(path string, limit int) ([]File
 
 // GetFileStat checks if a file or folder exists.
 func (s *FileStationSession) GetFileStat(path string) (*FileListEntry, error) {
-	var result *getFileListResponse
+	var result getFileListResponse
 
-	err := s.getForEntity(&result, "cgi-bin/filemanager/utilRequest.cgi", QueryParameters{
-		"func":       "stat",
-		"path":       filepath.ToSlash(filepath.Dir(path)),
-		"file_name":  filepath.Base(path),
-		"file_total": "1",
-	})
+	res, err := s.conn.NewRequest().
+		ExpectContentType("application/json").
+		SetQueryParam("func", "stat").
+		SetQueryParam("path", filepath.ToSlash(filepath.Dir(path))).
+		SetQueryParam("file_name", filepath.Base(path)).
+		SetQueryParam("file_total", "1").
+		SetResult(&result).
+		Get("cgi-bin/filemanager/utilRequest.cgi")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to perform request: %v", err)
+	}
+	if res.StatusCode() != 200 {
+		return nil, fmt.Errorf("failed to perform request: unexpected HTTP status code: %v", res.StatusCode())
 	}
 
 	if len(result.Entries) <= 0 {
@@ -139,45 +154,50 @@ type createFolderResponse struct {
 // CreateFolder creates a new folder.
 // The base directory must exists.
 func (s *FileStationSession) CreateFolder(path string) (bool, error) {
-	var result *createFolderResponse
+	var result createFolderResponse
 
-	err := s.getForEntity(&result, "cgi-bin/filemanager/utilRequest.cgi", QueryParameters{
-		"func":        "createdir",
-		"dest_path":   filepath.ToSlash(filepath.Dir(path)),
-		"dest_folder": filepath.Base(path),
-	})
+	res, err := s.conn.NewRequest().
+		ExpectContentType("application/json").
+		SetQueryParam("func", "createdir").
+		SetQueryParam("dest_path", filepath.ToSlash(filepath.Dir(path))).
+		SetQueryParam("dest_folder", filepath.Base(path)).
+		SetResult(&result).
+		Get("cgi-bin/filemanager/utilRequest.cgi")
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to perform request: %v", err)
+	}
+	if res.StatusCode() != 200 {
+		return false, fmt.Errorf("failed to perform request: unexpected HTTP status code: %v", res.StatusCode())
 	}
 
 	switch result.Status {
 	case 1: // success
 		return true, nil
 	case 3: // session expired
-		return false, fmt.Errorf("Session expired")
+		return false, fmt.Errorf("session expired")
 	case 5: // base directory does not exist
-		return false, fmt.Errorf("Base directory does not exist")
+		return false, fmt.Errorf("base directory does not exist")
 	case 2: // folder already exists
 		return false, nil
 	case 33: // folder already exists
 		return false, nil
 	case 4: // permission denied
-		return false, fmt.Errorf("Permission denied")
+		return false, fmt.Errorf("permission denied")
 	}
 
-	return false, fmt.Errorf("Unknown status code: %v", result.Status)
+	return false, fmt.Errorf("unknown status code: %v", result.Status)
 }
 
 // EnsureFolder creates a new folder and its parent directories.
 func (s *FileStationSession) EnsureFolder(path string) (int, error) {
 	if !strings.HasPrefix(path, "/") {
-		return 0, fmt.Errorf("Path does not begin with a slash: %v", path)
+		return 0, fmt.Errorf("path does not begin with a slash: %v", path)
 	}
 
 	// already exists?
 	exists, err := s.GetFileStat(path)
 	if err != nil {
-		return 0, fmt.Errorf("Failed to check for folder '%v': %v", path, err)
+		return 0, fmt.Errorf("failed to check for folder '%v': %v", path, err)
 	}
 	if exists != nil {
 		return 0, nil
@@ -186,7 +206,7 @@ func (s *FileStationSession) EnsureFolder(path string) (int, error) {
 	// create sub-folders
 	parts := strings.Split(filepath.ToSlash(path), "/")[1:]
 	if len(parts) < 2 {
-		return 0, fmt.Errorf("Path is not a subfolder of a share: %v", path)
+		return 0, fmt.Errorf("path is not a subfolder of a share: %v", path)
 	}
 
 	createdOverall := 0
@@ -195,7 +215,7 @@ func (s *FileStationSession) EnsureFolder(path string) (int, error) {
 
 		created, err := s.CreateFolder(subPath)
 		if err != nil {
-			return createdOverall, fmt.Errorf("Failed to create sub-folder '%v': %v", subPath, err)
+			return createdOverall, fmt.Errorf("failed to create sub-folder '%v': %v", subPath, err)
 		}
 
 		if created {
@@ -208,26 +228,36 @@ func (s *FileStationSession) EnsureFolder(path string) (int, error) {
 
 // DeleteFile deletes a file or folder.
 func (s *FileStationSession) DeleteFile(path string) (bool, error) {
-	return s.deleteFileInternal(path, 0)
+	return s.deleteFileInternal(path, false)
 }
 
 // DeleteFileNoRecycleBin deletes a file or folder without moving them to the recycling bin.
 func (s *FileStationSession) DeleteFileNoRecycleBin(path string) (bool, error) {
-	return s.deleteFileInternal(path, 1)
+	return s.deleteFileInternal(path, true)
 }
 
-func (s *FileStationSession) deleteFileInternal(path string, force int) (bool, error) {
-	var result *createFolderResponse
+func (s *FileStationSession) deleteFileInternal(path string, force bool) (bool, error) {
+	forceStr := "0"
+	if force {
+		forceStr = "1"
+	}
 
-	err := s.getForEntity(&result, "cgi-bin/filemanager/utilRequest.cgi", QueryParameters{
-		"func":       "delete",
-		"path":       filepath.ToSlash(filepath.Dir(path)),
-		"file_name":  filepath.Base(path),
-		"file_total": "1",
-		"force":      strconv.Itoa(force),
-	})
+	var result createFolderResponse
+
+	res, err := s.conn.NewRequest().
+		ExpectContentType("application/json").
+		SetQueryParam("func", "delete").
+		SetQueryParam("path", filepath.ToSlash(filepath.Dir(path))).
+		SetQueryParam("file_name", filepath.Base(path)).
+		SetQueryParam("file_total", "1").
+		SetQueryParam("force", forceStr).
+		SetResult(&result).
+		Get("cgi-bin/filemanager/utilRequest.cgi")
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to perform request: %v", err)
+	}
+	if res.StatusCode() != 200 {
+		return false, fmt.Errorf("failed to perform request: unexpected HTTP status code: %v", res.StatusCode())
 	}
 
 	switch result.Status {
@@ -236,12 +266,12 @@ func (s *FileStationSession) deleteFileInternal(path string, force int) (bool, e
 	case 0: // file not found
 		return false, nil
 	case 25: // base directory does not exist
-		return false, fmt.Errorf("Base directory does not exist")
+		return false, fmt.Errorf("base directory does not exist")
 	case 3: // session expired
-		return false, fmt.Errorf("Session expired")
+		return false, fmt.Errorf("session expired")
 	case 4: // permission denied
-		return false, fmt.Errorf("Permission denied")
+		return false, fmt.Errorf("permission denied")
 	}
 
-	return false, fmt.Errorf("Unknown status code: %v", result.Status)
+	return false, fmt.Errorf("unknown status code: %v", result.Status)
 }

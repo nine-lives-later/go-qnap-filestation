@@ -20,13 +20,11 @@ func main() {
 
 ## Authors
 
-The library is sponsored by the [marvin + konsorten GmbH](http://www.konsorten.de).
-
-It is loosely based on the [go-bigip package](https://github.com/scottdware/go-bigip) by Scott Ware (and others).
-
 We thank all the authors who provided code to this library:
 
 * Felix Kollmann
+* marvin + konsorten GmbH (who sponsored this library in 2018)
+* Scott Ware (v1 of this library is loosely based on the [go-bigip package](https://github.com/scottdware/go-bigip))
 
 ## License
 
