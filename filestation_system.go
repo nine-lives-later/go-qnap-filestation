@@ -6,11 +6,11 @@ import (
 )
 
 type loginResponse struct {
-	Status     int    `json:"status,omitempty"`
-	Version    string `json:"version,omitempty"`
-	Build      string `json:"build,omitempty"`
-	SessionID  string `json:"sid,omitempty"`
-	AdminGroup int    `json:"admingroup,omitempty"`
+	Status     FileStationStatus `json:"status,omitempty"`
+	Version    string            `json:"version,omitempty"`
+	Build      string            `json:"build,omitempty"`
+	SessionID  string            `json:"sid,omitempty"`
+	AdminGroup int               `json:"admingroup,omitempty"`
 }
 
 // Login perform the authentication against the QNAP storage.
@@ -36,25 +36,19 @@ func (s *FileStationSession) Login(username, password string) error {
 	}
 
 	switch result.Status {
-	case 0: // password wrong
-		return fmt.Errorf("password or username is invalid")
-	case 1: // success
+	case WFM2_SUCCESS: // success
 		s.sessionID = result.SessionID
 		s.conn.SetQueryParam("sid", s.sessionID)
 		return nil
-	case 2: // exists
-		return fmt.Errorf("already exists")
-	case 8: // disabled
-		return fmt.Errorf("API is disabled")
 	}
 
-	return fmt.Errorf("unknown status code: %v", result.Status)
+	return result.Status
 }
 
 type logoutResponse struct {
-	Status  int    `json:"status,omitempty"`
-	Version string `json:"version,omitempty"`
-	Build   string `json:"build,omitempty"`
+	Status  FileStationStatus `json:"status,omitempty"`
+	Version string            `json:"version,omitempty"`
+	Build   string            `json:"build,omitempty"`
 }
 
 // Logout invalidates the session.
@@ -78,15 +72,13 @@ func (s *FileStationSession) Logout() error {
 	}
 
 	switch result.Status {
-	case 1: // success
+	case WFM2_SUCCESS: // success
 		s.sessionID = ""
 		s.conn.SetQueryParam("sid", "")
 		return nil
-	case 8: // disabled
-		return fmt.Errorf("API is disabled")
 	}
 
-	return fmt.Errorf("unknown status code: %v", result.Status)
+	return result.Status
 }
 
 func encodePassword(pwd string) string {

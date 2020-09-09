@@ -60,7 +60,7 @@ func TestInvalidHost(t *testing.T) {
 		t.Fatal("Error expected")
 	}
 
-	if !strings.Contains(err.Error(), "no such host") {
+	if !strings.Contains(err.Error(), "no such host") && !strings.Contains(err.Error(), "server misbehaving") {
 		t.Fatalf("Wrong error message returned: %v", err)
 	}
 }
@@ -83,7 +83,6 @@ func TestConnect(t *testing.T) {
 
 func TestConnect_InvalidLogin(t *testing.T) {
 	host := os.Getenv("QNAP_HOSTNAME")
-
 	if host == "" {
 		host = "192.168.211.110:443"
 	}
@@ -92,8 +91,7 @@ func TestConnect_InvalidLogin(t *testing.T) {
 	if err == nil {
 		t.Fatal("Error expected")
 	}
-
-	if !strings.Contains(err.Error(), "password or username is invalid") {
+	if err != WFM2_FAIL {
 		t.Fatalf("Wrong error message returned: %v", err)
 	}
 }

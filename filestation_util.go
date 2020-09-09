@@ -148,7 +148,7 @@ func (s *FileStationSession) GetFileStat(path string) (*FileListEntry, error) {
 }
 
 type createFolderResponse struct {
-	Status int `json:"status,omitempty"`
+	Status FileStationStatus `json:"status,omitempty"`
 }
 
 // CreateFolder creates a new folder.
@@ -171,21 +171,13 @@ func (s *FileStationSession) CreateFolder(path string) (bool, error) {
 	}
 
 	switch result.Status {
-	case 1: // success
+	case WFM2_SUCCESS: // success
 		return true, nil
-	case 3: // session expired
-		return false, fmt.Errorf("session expired")
-	case 5: // base directory does not exist
-		return false, fmt.Errorf("base directory does not exist")
-	case 2: // folder already exists
+	case WFM2_FILE_EXIST, WFM2_NAME_DUP: // folder already exists
 		return false, nil
-	case 33: // folder already exists
-		return false, nil
-	case 4: // permission denied
-		return false, fmt.Errorf("permission denied")
 	}
 
-	return false, fmt.Errorf("unknown status code: %v", result.Status)
+	return false, result.Status
 }
 
 // EnsureFolder creates a new folder and its parent directories.
@@ -261,17 +253,11 @@ func (s *FileStationSession) deleteFileInternal(path string, force bool) (bool, 
 	}
 
 	switch result.Status {
-	case 1: // success
+	case WFM2_SUCCESS: // success
 		return true, nil
-	case 0: // file not found
+	case WFM2_FAIL, WFM2_PERMISSION_DENY: // file not found
 		return false, nil
-	case 25: // base directory does not exist
-		return false, fmt.Errorf("base directory does not exist")
-	case 3: // session expired
-		return false, fmt.Errorf("session expired")
-	case 4: // permission denied
-		return false, fmt.Errorf("permission denied")
 	}
 
-	return false, fmt.Errorf("unknown status code: %v", result.Status)
+	return false, result.Status
 }
