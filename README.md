@@ -24,7 +24,7 @@ We thank all the authors who provided code to this library:
 
 * Felix Kollmann
 * marvin + konsorten GmbH (who sponsored this library in 2018)
-* Scott Ware (v1 of this library is loosely based on the [go-bigip package](https://github.com/scottdware/go-bigip))
+* Scott Ware (v1.0 of this library is loosely based on the [go-bigip package](https://github.com/scottdware/go-bigip))
 
 ## License
 
