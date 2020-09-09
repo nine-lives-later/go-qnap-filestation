@@ -2,7 +2,7 @@
 
 This library provides access to the QNAP File Station API (http://www.qnap.com).
 
-**[Click here to open the GoDoc documentation.](https://godoc.org/github.com/nine-lives-later/go-qnap-filestation)**
+**[Click here to open the GoDoc documentation.](https://pkg.go.dev/github.com/nine-lives-later/go-qnap-filestation)**
 
 ## Usage
 
