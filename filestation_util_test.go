@@ -124,6 +124,25 @@ func TestRoundtrip(t *testing.T) {
 		}
 	})
 
+	// test modifying privilege
+	t.Run("SetPrivilegeRecursive-Level3", func(t *testing.T) {
+		err := s.SetPrivilege(testFolderPath+"/test/ensure", 0751, true)
+		if err != nil {
+			t.Fatalf("Failed set privilege on parent folder: %v", err)
+		}
+	})
+
+	t.Run("GetAndCheckPrivilege-Level4", func(t *testing.T) {
+		stat, err := s.GetFileStat(testFolderPath + "/test/ensure/test4")
+		if err != nil {
+			t.Fatalf("Failed get stats on folder: %v", err)
+		}
+		p := NewPrivilegeFromOctal(stat.Privilege)
+		if p != 0751 {
+			t.Fatalf("Expected changed privilege on sub-folder")
+		}
+	})
+
 	// list folders
 	t.Run("GetFileList-Level2", func(t *testing.T) {
 		folders, err := s.GetFileList(testFolderPath)

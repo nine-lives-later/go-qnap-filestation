@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+type genericStatusResponse struct {
+	Status FileStationStatus `json:"status,omitempty"`
+}
+
 type FolderListEntry struct {
 	Path          string `json:"id,omitempty"`
 	CLS           string `json:"cls,omitempty"`
@@ -147,14 +151,51 @@ func (s *FileStationSession) GetFileStat(path string) (*FileListEntry, error) {
 	return entry, nil
 }
 
-type createFolderResponse struct {
-	Status FileStationStatus `json:"status,omitempty"`
+// SetPrivilege changes file-system level permissions
+// of a file or folder (chmod).
+func (s *FileStationSession) SetPrivilege(path string, privilege Privilege, recursive bool) error {
+	var result genericStatusResponse
+	pbits := privilege.Bits()
+
+	res, err := s.conn.NewRequest().
+		ExpectContentType("application/json").
+		SetQueryParam("func", "set_privilege").
+		SetFormData(map[string]string{
+			"recursive":    boolToIntStr(recursive),
+			"bOwn_r":       boolToIntStr(pbits.OwnerRead),
+			"bOwn_w":       boolToIntStr(pbits.OwnerWrite),
+			"bOwn_x":       boolToIntStr(pbits.OwnerExecute),
+			"bGroup_r":     boolToIntStr(pbits.GroupRead),
+			"bGroup_w":     boolToIntStr(pbits.GroupWrite),
+			"bGroup_x":     boolToIntStr(pbits.GroupExecute),
+			"bOther_r":     boolToIntStr(pbits.OtherRead),
+			"bOther_w":     boolToIntStr(pbits.OtherWrite),
+			"bOther_x":     boolToIntStr(pbits.OtherExecute),
+			"source_path":  filepath.ToSlash(filepath.Dir(path)),
+			"source_file":  filepath.Base(path),
+			"source_total": "1",
+		}).
+		SetResult(&result).
+		Post("cgi-bin/filemanager/utilRequest.cgi")
+	if err != nil {
+		return fmt.Errorf("failed to perform request: %v", err)
+	}
+	if res.StatusCode() != 200 {
+		return fmt.Errorf("failed to perform request: unexpected HTTP status code: %v", res.StatusCode())
+	}
+
+	switch result.Status {
+	case WFM2_SUCCESS: // success
+		return nil
+	}
+
+	return result.Status
 }
 
 // CreateFolder creates a new folder.
 // The base directory must exists.
 func (s *FileStationSession) CreateFolder(path string) (bool, error) {
-	var result createFolderResponse
+	var result genericStatusResponse
 
 	res, err := s.conn.NewRequest().
 		ExpectContentType("application/json").
@@ -234,7 +275,7 @@ func (s *FileStationSession) deleteFileInternal(path string, force bool) (bool, 
 		forceStr = "1"
 	}
 
-	var result createFolderResponse
+	var result genericStatusResponse
 
 	res, err := s.conn.NewRequest().
 		ExpectContentType("application/json").
